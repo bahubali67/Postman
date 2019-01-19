@@ -21,14 +21,17 @@
 #define BUZZER_ON		PORTB |= 0x02
 #define BUZZER_OFF		PORTB &= ~0x02
 
-#define DELTA			 0x01 //make it 3 for final release
-#define STARTSTOPMINUTE  55 //10 //motor turn on time(min)
+
+/************************Make changes here for final release************************************************/
+#define DELTA			 0x03 //make it 3 for final release
+#define STARTSTOPMINUTE  55 //5 //motor turn on time(min)
 #define STARTSTOPHOUR    13 //8 //motor turn on time(hr)
+#define MOTORSCHEDULE	TURNONMOTORONCEIN2DAY//TURNONMOTOREVERYDAY// TURNONMOTORONCEIN2DAY
+/**********************************************************************************************************/
 
 #define TURNONMOTOREVERYDAY		((rtcDec.date % 1) == 0)
 #define TURNONMOTORONCEIN2DAY	((rtcDec.date % 2) == 0)
 #define TURNONMOTORONCEIN3DAY	((rtcDec.date % 3) == 0)
-#define TURNOFFMOTORONCEIN2DAY	TURNONMOTORONCEIN2DAY
 
 
 
@@ -137,33 +140,57 @@ int main()
 	lcd_clr();
 	wdt_enable(WDTO_2S);
 	relayON = 0;
-
+	char switchdisplay = 0; 
 	while(1)
 	{	
-		LCDGotoXY(0,0);
-		rtc_get_time(&time[0]);
-		lcd_write_str(time);
-		LCDGotoXY(8,0);
-		lcd_write_str("C:");
-		lcd_write_int(motorOnCount);
-		LCDGotoXY(12,0);
-		lcd_write_str("I:");
-		lcd_write_int(intCount);
-		rtc_get_date(&date[0]);
-		if(relayON == 0)
+		if(switchdisplay++ < 10)
 		{
-			LCDGotoXY(0,1);
-			lcd_write_str(date);	
-			LCDGotoXY(11,1);
-			lcd_write_str("T:");
-			lcd_write_int(IsMototTurnedOnToday);
+			LCDGotoXY(0,0);
+			rtc_get_time(&time[0]);
+			lcd_write_str(time);
+			lcd_write_str("   ");
+			LCDGotoXY(11,0);
+			lcd_write_str("C:");
+			lcd_write_int(motorOnCount);
+			//LCDGotoXY(12,0);
+			//lcd_write_str("I:");
+			//lcd_write_int(intCount);
+			rtc_get_date(&date[0]);
+			if(relayON == 0)
+			{
+				LCDGotoXY(0,1);
+				lcd_write_str(date);	
+				LCDGotoXY(11,1);
+				lcd_write_str("T:");
+				lcd_write_int(IsMototTurnedOnToday);
+			}
 		}
-
+		else if((switchdisplay >= 10) && (switchdisplay < 20))
+		{
+			//lcd_clr();
+			if(relayON == 0)
+			{
+				LCDGotoXY(0,0);
+				lcd_write_str("Next ON:");
+				lcd_write_int(startHr);
+				LCDGotoXY(11,0);
+				lcd_write_int(startMin);
+				lcd_write_str("    ");
+			}
+		}
+		else
+		{
+			switchdisplay = 0;
+		}
 		/* Reset IsMototTurnedOnToday flag everyday at 1AM*/
 		if(((rtcDec.hour == RESETHOUR) && (rtcDec.min == RESETMINUTE)) && (rtcDec.sec < RESETSECOND) )
 		{
 			IsMototTurnedOnToday = 0;
 			eeprom_write_byte((uint8_t*)TODAYSMOTORSTATUSADDRESS,IsMototTurnedOnToday);
+			startHr = STARTSTOPHOUR; //start motor at 7am
+			stopHr  = startHr;
+			startMin = STARTSTOPMINUTE;
+			stopMin  = startMin + DELTA;
 		}
 		//Reset motor on count once in a month i.e, on 1st of every month
 		if(((rtcDec.date == RESETDAY ) && (rtcDec.hour == RESETHOUR) && (rtcDec.min == RESETMINUTE)) && (rtcDec.sec < RESETSECOND) )
@@ -173,7 +200,7 @@ int main()
 		}
 		if(!relayON)
 		{
-			if(TURNONMOTORONCEIN2DAY && (rtcDec.hour == startHr) && (rtcDec.min == startMin))
+			if(MOTORSCHEDULE && (rtcDec.hour == startHr) && (rtcDec.min == startMin))
 			{
 				RELAY1_ON;
 				relayON = 1;
@@ -187,7 +214,7 @@ int main()
 		}
 		else
 		{		
-			if(TURNONMOTORONCEIN2DAY && (rtcDec.hour == stopHr) && (rtcDec.min == stopMin))
+			if(MOTORSCHEDULE && (rtcDec.hour == stopHr) && (rtcDec.min == stopMin))
 			{
 				RELAY1_OFF;
 				relayON = 0;
@@ -197,13 +224,10 @@ int main()
 				lcd_write_str("C:");
 				lcd_write_int(motorOnCount);
 				eeprom_write_byte((uint8_t*)MOTORCOUNTADDRESS,motorOnCount);
-				if(IsMototTurnedOnToday == 0)
-				{
-					startHr = STARTSTOPHOUR; //start motor at 7am
-					stopHr  = startHr;
-					startMin = STARTSTOPMINUTE;
-					stopMin  = startMin + DELTA;
-				}
+				startHr = STARTSTOPHOUR; //start motor at 7am
+				stopHr  = startHr;
+				startMin = STARTSTOPMINUTE;
+				stopMin  = startMin + DELTA;
 				IsMototTurnedOnToday = 1;
 				eeprom_write_byte((uint8_t*)TODAYSMOTORSTATUSADDRESS,IsMototTurnedOnToday);
 				lcd_clr();
