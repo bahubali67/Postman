@@ -23,10 +23,10 @@
 
 
 /************************Make changes here for final release************************************************/
-#define DELTA			 0x03 //make it 3 for final release
-#define STARTSTOPMINUTE  55 //5 //motor turn on time(min)
-#define STARTSTOPHOUR    13 //8 //motor turn on time(hr)
-#define MOTORSCHEDULE	TURNONMOTORONCEIN2DAY//TURNONMOTOREVERYDAY// TURNONMOTORONCEIN2DAY
+#define DELTA			 3 //make it 3 for final release
+#define STARTSTOPMINUTE  5//55 //5 //motor turn on time(min)
+#define STARTSTOPHOUR    8//13 //8 //motor turn on time(hr)
+#define MOTORSCHEDULE	TURNONMOTOREVERYDAY//TURNONMOTOREVERYDAY// TURNONMOTORONCEIN2DAY
 /**********************************************************************************************************/
 
 #define TURNONMOTOREVERYDAY		((rtcDec.date % 1) == 0)
@@ -67,13 +67,14 @@ int main()
 	wdt_disable();
 	DDRC = 0XC0;   //RS and EN
 	DDRA = 0XFF;   //Whole port as LCD data lines
-	DDRB = 0x07; // PB0 and PB1 as LED and Relay pins,PB2 as buzzer pin
+	DDRB = 0x0F; // PB0=>goes to realy input, PB1=>buzzer and PB2=>interrupt driven gpio, PB3=>water sensorcontrol(on/off)
 	DDRD = 0x00;	//input for selecting ON time delay
 	PORTD = 0xFF; //pull up the portd
 	
 	BUZZER_OFF;
-	RELAY1_OFF;
+	RELAY1_OFF;	
 		
+	PORTB |= 0x8;
 	char time[15];
 	char date[15];
 
@@ -102,7 +103,7 @@ int main()
 	unsigned char stopMin  = STARTSTOPMINUTE + DELTA;
 	unsigned char motorOnCount = 0;
 	unsigned char relayON, IsMototTurnedOnToday=0;
-
+	unsigned char waterPresent = 1; 
 	//comment these
 	//eeprom_write_byte((uint8_t*)MOTORCOUNTADDRESS,0);
 	//eeprom_write_byte((uint8_t*)TODAYSMOTORSTATUSADDRESS,0);
@@ -143,7 +144,9 @@ int main()
 	char switchdisplay = 0; 
 	while(1)
 	{	
-		if(switchdisplay++ < 10)
+
+		switchdisplay++;
+		if(switchdisplay <= 10)
 		{
 			LCDGotoXY(0,0);
 			rtc_get_time(&time[0]);
@@ -160,12 +163,14 @@ int main()
 			{
 				LCDGotoXY(0,1);
 				lcd_write_str(date);	
+				lcd_write_str(" ");
 				LCDGotoXY(11,1);
 				lcd_write_str("T:");
 				lcd_write_int(IsMototTurnedOnToday);
 			}
+
 		}
-		else if((switchdisplay >= 10) && (switchdisplay < 20))
+	    else if((switchdisplay > 10) && (switchdisplay < 20))
 		{
 			//lcd_clr();
 			if(relayON == 0)
@@ -177,6 +182,8 @@ int main()
 				lcd_write_int(startMin);
 				lcd_write_str("    ");
 			}
+			else
+				switchdisplay = 0;
 		}
 		else
 		{
@@ -186,6 +193,7 @@ int main()
 		if(((rtcDec.hour == RESETHOUR) && (rtcDec.min == RESETMINUTE)) && (rtcDec.sec < RESETSECOND) )
 		{
 			IsMototTurnedOnToday = 0;
+			waterPresent = 1;
 			eeprom_write_byte((uint8_t*)TODAYSMOTORSTATUSADDRESS,IsMototTurnedOnToday);
 			startHr = STARTSTOPHOUR; //start motor at 7am
 			stopHr  = startHr;
@@ -200,7 +208,7 @@ int main()
 		}
 		if(!relayON)
 		{
-			if(MOTORSCHEDULE && (rtcDec.hour == startHr) && (rtcDec.min == startMin))
+			if(MOTORSCHEDULE && (rtcDec.hour == startHr) && (rtcDec.min == startMin) && waterPresent == 1)
 			{
 				RELAY1_ON;
 				relayON = 1;
@@ -232,6 +240,20 @@ int main()
 				eeprom_write_byte((uint8_t*)TODAYSMOTORSTATUSADDRESS,IsMototTurnedOnToday);
 				lcd_clr();
 				BUZZER_OFF;
+			}
+			if(rtcDec.sec >= 10 )
+			{
+				if(((PIND & 0xFF) & 1) != 0)
+				{
+					waterPresent = 0;
+					RELAY1_OFF;
+					relayON = 0;
+					lcd_clr();
+				}
+				else
+				{
+					waterPresent = 1;
+				}
 			}
 		}
 		wdt_reset();
