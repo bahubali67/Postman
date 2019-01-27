@@ -21,12 +21,14 @@
 #define BUZZER_ON		PORTB |= 0x02
 #define BUZZER_OFF		PORTB &= ~0x02
 
+#define WATER_SENSOR_ON		PORTB |= 0x08
+#define WATER_SENSOR_OFF	PORTB &= ~0x08
 
 /************************Make changes here for final release************************************************/
 #define DELTA			 3 //make it 3 for final release
-#define STARTSTOPMINUTE  5//55 //5 //motor turn on time(min)
-#define STARTSTOPHOUR    8//13 //8 //motor turn on time(hr)
-#define MOTORSCHEDULE	TURNONMOTOREVERYDAY//TURNONMOTOREVERYDAY// TURNONMOTORONCEIN2DAY
+#define STARTSTOPMINUTE  55 //5 //motor turn on time(min)
+#define STARTSTOPHOUR    13 //8 //motor turn on time(hr)
+#define MOTORSCHEDULE	TURNONMOTORONCEIN2DAY//TURNONMOTOREVERYDAY// TURNONMOTORONCEIN2DAY
 /**********************************************************************************************************/
 
 #define TURNONMOTOREVERYDAY		((rtcDec.date % 1) == 0)
@@ -73,8 +75,8 @@ int main()
 	
 	BUZZER_OFF;
 	RELAY1_OFF;	
+	WATER_SENSOR_OFF;
 		
-	PORTB |= 0x8;
 	char time[15];
 	char date[15];
 
@@ -212,6 +214,7 @@ int main()
 			{
 				RELAY1_ON;
 				relayON = 1;
+				WATER_SENSOR_ON;
 				lcd_clr();
 				LCDGotoXY(0,1);
 				lcd_write_str("Motor Turned ON");
@@ -240,6 +243,7 @@ int main()
 				eeprom_write_byte((uint8_t*)TODAYSMOTORSTATUSADDRESS,IsMototTurnedOnToday);
 				lcd_clr();
 				BUZZER_OFF;
+				WATER_SENSOR_OFF;
 			}
 			if(rtcDec.sec >= 10 )
 			{
@@ -248,6 +252,7 @@ int main()
 					waterPresent = 0;
 					RELAY1_OFF;
 					relayON = 0;
+					WATER_SENSOR_OFF;
 					lcd_clr();
 				}
 				else
