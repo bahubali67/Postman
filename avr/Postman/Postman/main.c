@@ -26,9 +26,9 @@
 
 /************************Make changes here for final release************************************************/
 #define DELTA			 3 //make it 3 for final release
-#define STARTSTOPMINUTE  5//55 //5 //motor turn on time(min)
-#define STARTSTOPHOUR    8//13 //8 //motor turn on time(hr)
-#define MOTORSCHEDULE	TURNONMOTOREVERYDAY//TURNONMOTOREVERYDAY// TURNONMOTORONCEIN2DAY
+#define STARTSTOPMINUTE  55 //5 //motor turn on time(min)
+#define STARTSTOPHOUR    13 //8 //motor turn on time(hr)
+#define MOTORSCHEDULE	TURNONMOTORONCEIN2DAY//TURNONMOTOREVERYDAY// TURNONMOTORONCEIN2DAY
 /**********************************************************************************************************/
 
 #define TURNONMOTOREVERYDAY		((rtcDec.date % 1) == 0)
@@ -165,7 +165,7 @@ int main()
 		}
 
 		/* Reset IsMototTurnedOnToday flag everyday at 1AM*/
-		if(((rtcDec.hour == RESETHOUR) && (rtcDec.min == RESETMINUTE)) && (rtcDec.sec < RESETSECOND) && IsMototTurnedOnToday )
+		if((rtcDec.hour == RESETHOUR) && (rtcDec.min == RESETMINUTE) && (rtcDec.sec < RESETSECOND) && IsMototTurnedOnToday )
 		{
 			IsMototTurnedOnToday = 0;
 			waterPresent = 1;
@@ -173,13 +173,13 @@ int main()
 			startHr = STARTSTOPHOUR; //start motor at 7am
 			stopHr  = startHr;
 			startMin = STARTSTOPMINUTE;
-			stopMin  = startMin + DELTA;
-			//Reset motor on count once in a month i.e, on 1st of every month
-			if(rtcDec.date == RESETDAY)
-			{
-				motorOnCount = 0;
-				eeprom_write_byte((uint8_t*)MOTORCOUNTADDRESS,motorOnCount);	
-			}
+			stopMin  = startMin + DELTA;		
+		}
+		//Reset motor on count once in a month i.e, on 1st of every month
+		if(rtcDec.date == RESETDAY && rtcDec.hour == RESETHOUR && rtcDec.min == RESETMINUTE && (rtcDec.sec < RESETSECOND) )
+		{
+			motorOnCount = 0;
+			eeprom_write_byte((uint8_t*)MOTORCOUNTADDRESS,motorOnCount);
 		}
 		if(!relayON)
 		{
