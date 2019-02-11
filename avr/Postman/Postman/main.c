@@ -26,9 +26,9 @@
 
 /************************Make changes here for final release************************************************/
 #define DELTA			 3 //make it 3 for final release
-#define STARTSTOPMINUTE  55 //5 //motor turn on time(min)
-#define STARTSTOPHOUR    13 //8 //motor turn on time(hr)
-#define MOTORSCHEDULE	TURNONMOTORONCEIN2DAY//TURNONMOTOREVERYDAY// TURNONMOTORONCEIN2DAY
+#define STARTSTOPMINUTE  0 //5 //motor turn on time(min)
+#define STARTSTOPHOUR    2 //8 //motor turn on time(hr)
+#define MOTORSCHEDULE	TURNONMOTORONCEIN3DAY//TURNONMOTOREVERYDAY// TURNONMOTORONCEIN2DAY
 /**********************************************************************************************************/
 
 #define TURNONMOTOREVERYDAY		((rtcDec.date % 1) == 0)
@@ -114,8 +114,8 @@ int main()
 
 	rtc_get_time(&time[0]);
 	IsMototTurnedOnToday = eeprom_read_byte((uint8_t *)TODAYSMOTORSTATUSADDRESS);
-	//If motor missed to turn on then restart motor between 7am(STARTSTOPHOUR) to 22pm
-	if((rtcDec.hour >= STARTSTOPHOUR) && (rtcDec.hour < 22))
+	//If motor missed to turn on then restart motor between 2am(STARTSTOPHOUR) to 6am
+	if((rtcDec.hour >= STARTSTOPHOUR) && (rtcDec.hour < (STARTSTOPHOUR + 4)))
 	{	
 		char buff[16];
 		if(IsMototTurnedOnToday == 0)
